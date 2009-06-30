@@ -23,17 +23,32 @@ Screw.Unit(function() {
         ranks: { name: 1, category: 0 }
       }));
     });
-        
-    after(function() {
-      Smoke.reset();
-    });
-    
+            
     describe('initialize', function() {
-      // Hacky but equal matcher doesn't work with nested objects.
-      it("should set the passed options to the options property", function() {
-        expect(json_search.options.fields).to(equal, { name: 'prefix', category: 'infix'  });
+      it("should set the options property", function() {
+        expect(json_search.options).to_not(be_undefined);
       });
       
+      it("should call setAttributes()", function() {
+        json_search.should_receive('setAttributes').exactly('once');
+        json_search.initialize();
+        json_search.checkExpectations();
+      });
+      
+      it("should call buildMatcherTemplates", function() {
+        json_search.should_receive('buildMatcherTemplates').exactly('once')
+        json_search.initialize();
+        json_search.checkExpectations();
+      });
+      
+      it("should call buildQueryString()", function() {
+        json_search.should_receive('buildQueryString').exactly('once');
+        json_search.initialize();
+        json_search.checkExpectations();
+      });
+    });
+    
+    describe('setAttributes', function() {
       it("should set the fields property to the fields in the options object", function() {
         expect(json_search.fields).to(equal, { name: 'prefix', category: 'infix'  });
       });
@@ -60,21 +75,17 @@ Screw.Unit(function() {
         expect(json_search_with_limit.offset).to(equal, 2)
       });
       
-      it("should set the case_sensitive property to the an empty string if case_sensitive passed is true", function() {
+      it("should set the case_sensitive property to true if case_sensitive passed is true", function() {
         json_search.initialize({case_sensitive: true});
-        expect(json_search.case_sensitive).to(equal, '')
+        expect(json_search.case_sensitive).to(equal, true)
       });
 
-      it("should set the case_sensitive property to 'i' if case_sensitive passed as false", function() {
+      it("should set the case_sensitive property to false if case_sensitive passed as false", function() {
         json_search.initialize({case_sensitive: false});
-        expect(json_search.case_sensitive).to(equal, 'i')
+        expect(json_search.case_sensitive).to(equal, false)
       });
       
-      it("should call buildQueryString()", function() {
-        expect(json_search.query_string).to_not(be_undefined);
-      });
-    });
-
+    })
     describe('getRanks', function() {
       it("should return an object keyed with the field name and valued with the rank", function() {
         expect(json_search_with_ranks.getRanks()).to(equal, { name: 1, category: 0 });
@@ -102,14 +113,41 @@ Screw.Unit(function() {
     });
         
     describe('buildQueryString', function() {
-      //FIXME need proper mocking and stubbing to test this
-      //TODO Investigate why Smoke mocks don't seem to handle should_receive on these instances
+      it("should interate through the fields_ordered_by_rank", function() {
+        var mock_fields_ordered_by_rank = Smoke.Mock(json_search.fields_ordered_by_rank);
+        json_search.fields_ordered_by_rank = mock_fields_ordered_by_rank;
+        mock_fields_ordered_by_rank.should_receive('each').exactly('once');
+        json_search.buildQueryString();
+        mock_fields_ordered_by_rank.checkExpectations();
+      });
+      
+      it("should call build matcher once for each field", function() {
+        json_search.should_receive('buildMatcher').exactly(2);
+        json_search.buildQueryString();
+        json_search.checkExpectations();
+      });
 
+      it("should call buildMatcher with each of the fields and there patterns", function() {
+        json_search.should_receive('buildMatcher').with_arguments('name', 'prefix').exactly('once');
+        json_search.should_receive('buildMatcher').with_arguments('category', 'infix').exactly('once');
+        json_search.buildQueryString();
+        json_search.checkExpectations();
+      });
     });
     
     describe("buildMatcher", function() {
-      //FIXME need proper mocking and stubbing to test this
-      //TODO Investigate why Smoke mocks don't seem to handle should_receive on these instances
+      it("should call subMatcher", function() {
+        json_search.should_receive('subMatcher').exactly('once');
+        json_search.buildMatcher('name', 'prefix');
+        json_search.checkExpectations();
+      });
+
+      it("should call subMatcher with the pattern template and the template evaluation object", function() {
+        json_search.prefix_matcher = 'matcher'
+        json_search.should_receive('subMatcher').with_arguments('matcher', { name: 'name', regex_options: 'i' }).exactly('once').and_return('');
+        json_search.buildMatcher('name', 'prefix');
+        json_search.checkExpectations();
+      });
     });
     
     describe('subMatcher', function() {
@@ -126,8 +164,51 @@ Screw.Unit(function() {
     });
 
     describe("getResults", function() {
-      //FIXME need proper mocking and stubbing to test this
-      //TODO Investigate why Smoke mocks don't seem to handle should_receive on these instances      
+      after(function() { Smoke.reset() })
+      it("should call subQueryString with the token", function() {
+        json_search.should_receive('subQueryString').with_arguments('a');
+        json_search.getResults('a', [{}]);
+        json_search.checkExpectations();
+      });
+      
+      it("should call getFilteredResults", function() {
+        json_search.should_receive('getFilteredResults').and_return([]);
+        json_search.getResults('a', {});
+        json_search.checkExpectations();
+      });
+      
+      it("should call getFilteredResults with a subbed query string and the object", function() {
+        json_search.stub('subQueryString').and_return('subbed_query_string')
+        json_search.should_receive('getFilteredResults').with_arguments('subbed_query_string', [{}]).and_return([]);
+        json_search.getResults('a', [{}]);
+        json_search.checkExpectations();
+      });
+      
+      it("should call sortResults with the filtered results", function() {
+        json_search.stub('getFilteredResults').and_return(['result'])
+        json_search.should_receive('sortResults').with_arguments(['results']).and_return([])
+        json_search.getResults('a', [{}]);
+        json_search.checkExpectations();
+      })
+      
+      it("should call limitResults with the sortedResults", function() {
+        json_search.stub('sortResults').and_return(['result'])
+        json_search.should_receive('limitResults').with_arguments(['result']).and_return([])
+        json_search.getResults('a', [{}])
+        json_search.checkExpectations();
+      })
+      
+      it("should call cleanResults with the limited results", function() {
+        json_search.stub('limitResults').and_return(['result'])
+        json_search.should_receive('cleanResults').with_arguments(['result']).and_return([]);
+        json_search.getResults('a', [{}]);
+        json_search.checkExpectations();
+      })
+      
+      it("should return the cleaned results", function() {
+        json_search.stub('cleanResults').and_return(['result'])
+        expect(json_search.getResults('a', [{}])).to(equal, ['result'])
+      })
     });
     
     describe('getFilteredResults', function() {
@@ -156,27 +237,30 @@ Screw.Unit(function() {
     describe('limitResults', function() {
       var results = [1,2,3];
       describe('with a limit', function() {
-        before(function() {  json_search.limit = 1; })
         it("should limit the results", function() {
+          json_search.limit = 1;
+          json_search.offset = 0;
           expect(json_search.limitResults(results)).to(equal, [1])
         })
         
         describe('with an offset', function() {
           it("should return results a the specified offset and limited to the limit", function() {
+            json_search.limit = 1;
             json_search.offset = 1;
             expect(json_search.limitResults(results)).to(equal, [2])
           })
         })
         
         describe('without a limit', function() {
-          before(function() {  json_search.limit = null; })
           it("should return the results as passed", function() {
+            json_search.limit = null;
             json_search.offset = 0;
             expect(json_search.limitResults(results)).to(equal, results);
           })
           
           describe('with an offset', function() {
             it("should return results greater than the offset", function() {
+              json_search.limit = null;
               json_search.offset = 1;
               expect(json_search.limitResults(results)).to(equal, [2,3])
             })

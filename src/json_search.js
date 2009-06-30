@@ -18,46 +18,52 @@
    
    json_search.getResults('first', [{ first_name: 'first', last_name: 'last', category: 'names'}, { first_na...]);
 */
-//TODO remove Prototype dependency
 var JSONSearch = Class.create({
 
-  fields: {},
-  ranks: {},
-  limit: null,
-  offset: 0,
-  case_sensitive: 'i',
-  query_string: '',
-  query_function: new Template("1&&function(object) { var hits = 0, ranks_array = []; #{query_string} if (hits > 0) { return [(ranks_array.sort().last() || 0), hits, object]; } }"),
+  default_options: {
+    fields: {},
+    ranks: {},
+    limit: null,
+    offset: 0,
+    case_sensitive: false
+  },  
   patterns: {
     infix: '.*$token.*',
     prefix: '^$token.*',
     exact: '^$token$',
     word: '\\b$token\\b',
     word_prefix: '\\b$token.*'
-  },
-  
-  initialize: function(options) {
-    this.options = (options || {});
-    this.fields = (Object.clone(this.options.fields) || {});
-    this.ranks = this.getRanks();
-    this.fields_ordered_by_rank = this.fieldsOrderedByRank();
-    this.limit = (this.options.limit || this.limit);
-    this.offset = (this.options.offset || this.offset);
-    if (this.options.case_sensitive) {
-      this.case_sensitive = '';      
-    }
+  },    
+  query_string: '',
+  // TODO Remove Prototype dependency
+  query_function: new Template("1&&function(object) { var hits = 0, ranks_array = []; #{query_string} if (hits > 0) { return [(ranks_array.sort().last() || 0), hits, object]; } }"),
+    
+  initialize: function(options) {    
+    this.options = Object.extend(this.default_options, options || {});
+    this.setAttributes(options);
     this.buildMatcherTemplates();
     this.buildQueryString();
   },
   
+  setAttributes: function() {
+    // TODO Remove Prototype dependency
+    ['fields', 'limit', 'offset', 'case_sensitive'].each(function(attr) {
+      this[attr] = this.options[attr];
+    }, this);
+    this.ranks = this.getRanks();
+    this.fields_ordered_by_rank = this.fieldsOrderedByRank();
+  },
+  
   buildMatcherTemplates: function() {
+    // TODO Remove Prototype dependency
     $H(this.patterns).each(function(pair) {
-      this[pair.key + '_matcher'] = new Template('if(/' + pair.value + '/#{case_sensitive}.test(object["#{name}"])){hits++;ranks_array.push(ranks["#{name}"]);}');
+      this[pair.key + '_matcher'] = new Template('if(/' + pair.value + '/#{regex_options}.test(object["#{name}"])){hits++;ranks_array.push(ranks["#{name}"]);}');
     }, this);
   },
   
   getRanks: function(object) {
     var ranks = {};
+    // TODO Remove Prototype dependency
     $H(this.fields).keys().each(function(field) {
       ranks[field] = (this.options.ranks && this.options.ranks[field] || 0);
     }, this);
@@ -67,14 +73,17 @@ var JSONSearch = Class.create({
   // TODO if ranks are all 0 might just use the format order if supplied
   fieldsOrderedByRank: function() {
     var fields_ordered_by_rank = [];
+    // TODO Remove Prototype dependency
     $H(this.ranks).each(function(pair) {
       fields_ordered_by_rank.push([pair.value, pair.key]);
     });
+    // TODO Remove Prototype dependency
     return fields_ordered_by_rank.sort().reverse().invoke('last');
   },
   
   buildQueryString: function() {
     var query_string_array = [];
+    // TODO Remove Prototype dependency
     this.fields_ordered_by_rank.each(function(field) {
       query_string_array.push(this.buildMatcher(field, this.fields[field]));
     }, this)
@@ -82,24 +91,26 @@ var JSONSearch = Class.create({
   },
   
   buildMatcher: function(name, pattern) {
-    return this.subMatcher(this[pattern + '_matcher'], { name: name, case_sensitive: this.case_sensitive });
+    return this.subMatcher(this[pattern + '_matcher'], { name: name, regex_options: this.getRegexOptions() });
   },
   
   subMatcher: function(matcher, object) {
+    // TODO Remove Prototype dependency
     return matcher.evaluate(object);
   },
   
   subQueryString: function(token) {    
-    return this.query_string.gsub(/\$token/, RegExp.escape(token));
+    return this.query_string.replace(/\$token/, this.regexEscape(token));
   },
   
   //TODO add an options object to pass limit/offset. 
   getResults: function(token, object) {
-    var results;
+    // TODO Remove Prototype dependency
     if (!Object.isArray(object)) {
       object = [object];
     }    
-    results = this.getFilteredResults(this.subQueryString(token), object);
+    var results, subbed_query_string = this.subQueryString(token);
+    results = this.getFilteredResults(subbed_query_string, object);
     results = this.sortResults(results);
     results = this.limitResults(results);
     return this.cleanResults(results);
@@ -121,7 +132,6 @@ var JSONSearch = Class.create({
     return results.sort().reverse();
   },
 
-  //TODO handle limit/offset passed as options  
   limitResults: function(results) {
     if (this.limit) {
       return results.slice(this.offset, (this.limit + this.offset));
@@ -141,8 +151,15 @@ var JSONSearch = Class.create({
   },
   
   getRegex: function(token, pattern) {
-    return new RegExp(this.patterns[pattern].gsub(/\$token/, token), this.case_sensitive);
+    return new RegExp(this.patterns[pattern].replace(/\$token/, this.regexEscape(token)), this.getRegexOptions());
+  },
+  
+  getRegexOptions: function() {
+    return (this.case_sensitive && '' || 'i');
+  },
+  
+  regexEscape: function(string) {
+    return String(string).replace(/([.*+?^=!:${}()|[\]\/\\])/g, '\\$1');    
   }
-
 });
 
