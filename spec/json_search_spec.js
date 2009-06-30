@@ -157,6 +157,13 @@ Screw.Unit(function() {
 
     describe("getResults", function() {
       after(function() { Smoke.reset() })
+      it("should call evalJSON with the data object", function() {
+        var query_string = '[{"name": "kris"}, {"name": "bob"}]'
+        json_search.should_receive('evalJSON').with_arguments(query_string).and_return([{}]);
+        json_search.getResults('a', query_string);
+        json_search.checkExpectations();
+      });
+      
       it("should call subQueryString with the token", function() {
         json_search.should_receive('subQueryString').with_arguments('a');
         json_search.getResults('a', [{}]);
@@ -264,6 +271,28 @@ Screw.Unit(function() {
     describe("cleanResults", function() {
       it("should return the results with the rank and wieghts removed", function() {
         expect(json_search.cleanResults([[1,1, {one: 1}], [2,2,{two: 2}], [3,3,{three: 3}]])).to(equal, [{one: 1}, {two: 2}, {three: 3}]);
+      })
+    })
+
+    describe("evalJSON", function() {
+      it("should eval the object if it is a string", function() {
+        var json = '{"name": "kris"}'
+        expect(json_search.evalJSON(json)).to(equal, {"name": "kris"})
+      })
+      
+      it("should throw an error if the json is badly formed", function() {
+        var json = '{ "name": "kris }', message = null;
+        try {
+          json_search.evalJSON(json)
+        } catch(e) {
+          message = e.message;
+        }
+        expect(message).to(equal, 'Badly formed JSON string');
+      });
+      
+      it("should return the just return object if it is not a string", function() {
+        var json = {name: "kris"}
+        expect(json_search.evalJSON(json) === json).to(equal, true);
       })
     })
   });

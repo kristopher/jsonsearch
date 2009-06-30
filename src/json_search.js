@@ -122,12 +122,12 @@ JSONSearch.InstanceMethods = {
     for(var property in object) {
       subbed_query_function = this.query_function.replace('#{' + property + '}', object[property], 'g')
     }
-    // console.debug(subbed_query_function);
     return subbed_query_function;
   },
   
   //TODO add an options object to pass limit/offset. 
   getResults: function(token, object) {
+    object = this.evalJSON(object);
     if (!(object instanceof Array)) {
       object = [object];
     }    
@@ -170,6 +170,17 @@ JSONSearch.InstanceMethods = {
       clean_results.push(results[i][2]);
     }
     return clean_results;
+  },
+  
+  evalJSON: function(json) {
+    if (typeof json == 'string') {
+      try {
+        json = eval('(' + json + ')');
+      } catch(e) {
+        throw new SyntaxError('Badly formed JSON string');
+      }
+    }
+    return json;
   },
   
   getRegex: function(token, pattern) {
