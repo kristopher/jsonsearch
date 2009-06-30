@@ -29,22 +29,12 @@ Smoke.Mock = function(originalObj) {
 	};
 	
 	obj.should_receive = function(attr){
-		var expectation = new Smoke.Mock.Expectation(this, attr);
-		if(this._expectations[attr]==undefined) this._expectations[attr] = [];
-		this._expectations[attr].push(expectation);
-		var previousFunction = this[attr];
-		var mock = this;
-		if(this._expectations[attr].length>1) return expectation;
-		this[attr] = function() {
-		  var ret = undefined;
-		  for(var i=0; i<mock._expectations[attr].length; i++) {
-		    var expectation = mock._expectations[attr][i];
-			  var ran = expectation.run(arguments);
-			  if(ran && expectation.hasReturnValue) ret = expectation.returnValue;
-		  };
-			return ret;
-		};
-		return expectation;
+		var expectation = new Smoke.Mock.Expectation(this, attr)
+		this._expectations[attr] = (this._expectations[attr] || []).concat([expectation]);
+		if(this._expectations[attr].length == 1) {
+  		this[attr] = Smoke.Mock.Expectation.stub(this, attr);
+		} 
+		return expectation;		  
 	};
 
 	obj.checkExpectations = function(){
@@ -59,13 +49,18 @@ Smoke.Mock = function(originalObj) {
 };
 
 Smoke.MockFunction = function(originalFunction, name) {
-  var name = name || 'anonymous_function';
-  var originalFunction = originalFunction || function() {};
-  var scope = function() { return scope.mockFunction.apply(this,arguments) };
-  scope[name] = originalFunction;
-  scope.mockFunction = function() { return scope[name].apply(this,arguments); };
-  var mock = Smoke.Mock(scope);
-  mock.should_be_invoked = function() { return mock.should_receive(name) };
+  name = name || 'anonymous_function';
+  var mock = Smoke.Mock(function() {
+    var return_value = arguments.callee[name].apply(this, arguments);
+    if (return_value === undefined) {
+      return_value = (originalFunction || new Function()).apply(this, arguments)
+    }
+    return return_value;
+  });
+  mock[name] = (originalFunction || new Function());
+  mock.should_be_invoked = function() {
+    return this.should_receive(name);
+  }
   return mock;
 };
 
@@ -77,6 +72,22 @@ Smoke.Mock.Expectation = function(mock, attr) {
 	this.callerArgs = undefined;
 	this.hasReturnValue = false;
 };
+
+Smoke.Mock.Expectation.stub = function(mock, attr) {
+  return function() {
+    return function() {
+      var matched, return_value, args = arguments;
+      jQuery.each(this, function() {
+    	  this.run(args) && (matched = true) && (return_value = this.returnValue);
+      });
+      if (!matched) {
+        this[0].argumentMismatchError(args)
+      }
+      return return_value;        
+    }.apply(mock._expectations[attr], arguments);
+  }
+} 
+
 
 Smoke.Mock.Expectation.prototype = {
 	exactly: function(count,type){
@@ -98,9 +109,8 @@ Smoke.Mock.Expectation.prototype = {
 		return this
 	},
 	run: function(args){
-		if(typeof(this.callerArgs) == 'undefined' || this.compareArrays(args, this.callerArgs)) {
-			this.callCount+=1;
-			return true;
+		if((this.callerArgs === undefined) || Smoke.compareArguments(args, this.callerArgs)) {
+			return !!(this.callCount+=1);
 		};
 		return false
 	},
@@ -125,28 +135,20 @@ Smoke.Mock.Expectation.prototype = {
 		if(this.maxCount>=this.callCount) Smoke.passed(this);//console.log('Mock passed!')
 		else Smoke.failed(this, 'expected '+this.methodSignature()+' to be called at most '+this.maxCount+" times but it actually got called "+this.callCount+' times');
 	},
+	argumentMismatchError: function(args) {
+	  Smoke.failed(this, 'expected ' + this._attr + ' with ' + Smoke.printArguments(this.callerArgs) + ' but received it with ' + Smoke.printArguments(args));
+	},
 	methodSignature: function(){
-		var a = '';
-		var args = this.callerArgs || [];
-		for(var i=0; i<args.length; i++) a += Smoke.print(args[i])+', ';
-		a =a.slice(0,-2);
-		return this._attr+'('+a+')'
+		return this._attr + Smoke.printArguments(this.callerArgs);
 	},
 	parseCount: function(c){
 		switch(c){
-			case 'once'		: c=1; 	break;
-			case 'twice'	: c=2; 	break;
+			case 'once': 
+				return 1;
+			case 'twice':
+				return 2;
+			default:
+				return c;
 		}
-		return c;
-	},
-	compareArrays: function(a,b) {
-	    if (a.length != b.length) return false;
-	    for (var i = 0; i < b.length; i++) {
-	        if (a[i].compare) { 
-	            if (!a[i].compare(b[i])) return false;
-	        }
-	        if (a[i] !== b[i]) return false;
-	    }
-	    return true;
 	}
 };
