@@ -113,14 +113,6 @@ Screw.Unit(function() {
     });
         
     describe('buildQueryString', function() {
-      it("should interate through the fields_ordered_by_rank", function() {
-        var mock_fields_ordered_by_rank = Smoke.Mock(json_search.fields_ordered_by_rank);
-        json_search.fields_ordered_by_rank = mock_fields_ordered_by_rank;
-        mock_fields_ordered_by_rank.should_receive('each').exactly('once');
-        json_search.buildQueryString();
-        mock_fields_ordered_by_rank.checkExpectations();
-      });
-      
       it("should call build matcher once for each field", function() {
         json_search.should_receive('buildMatcher').exactly(2);
         json_search.buildQueryString();
@@ -152,7 +144,7 @@ Screw.Unit(function() {
     
     describe('subMatcher', function() {
       it("should return a string of the evaluated matcher", function() {
-        expect(json_search.subMatcher(json_search.prefix_matcher, {name: 'name', case_sensitive: ''})).to(equal, 'if(/^$token.*/.test(object["name"])){hits++;ranks_array.push(ranks["name"]);}')
+        expect(json_search.subMatcher(json_search.prefix_matcher, {name: 'name', regex_options: 'i'})).to(equal, 'if(/^$token.*/i.test(object["name"])){hits++;ranks_array.push(ranks["name"]);}')
       })
     });
 
@@ -185,7 +177,7 @@ Screw.Unit(function() {
       });
       
       it("should call sortResults with the filtered results", function() {
-        json_search.stub('getFilteredResults').and_return(['result'])
+        json_search.stub('getFilteredResults').and_return(['results'])
         json_search.should_receive('sortResults').with_arguments(['results']).and_return([])
         json_search.getResults('a', [{}]);
         json_search.checkExpectations();
