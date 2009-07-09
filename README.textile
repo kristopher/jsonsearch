@@ -1,6 +1,6 @@
 h1. JSONSearch
 
-
+Simple JSON search library.
 
 h2. Example
 
@@ -35,7 +35,7 @@ h2. Search Methods
 |word|Matches a whole word.|
 |word_prefix|Matches from the beginning of a word.|
 
-h2. Search Options
+h2. Options
 
 |_.Option|_.Default Value|_.Description|
 |case_sensitive|false|case sensitivity when autocompleting.|
@@ -43,12 +43,6 @@ h2. Search Options
 |offset|0|amount to offset the results.|
 |fields|none|object containing the property names to search as the keys and the desired search method as there values.|
 |ranks|0|object containing the property names and there desired ranks.|
-
-h2. Format Options
-
-|_.Option|_.Default Value|_.Description|
-|order|none|order that the results will be displayed.|
-|select|all of the results text|property that will be used to populate the input.|
 
 h2. Dependancies
 
