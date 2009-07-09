@@ -1,0 +1,64 @@
+h1. JSONSearch
+
+
+
+h2. Example
+
+<pre>  
+<code>
+  var json_search = new JSONSearch({
+    case_sensitive: false, //Default
+    limit: 10, //Default
+    offset: 0, //Default
+    fields: {
+      first_name: 'prefix',
+      last_name: 'exact',
+      category: 'infix'
+    },
+    ranks: {  // Not require but suggested
+      first_name: 2,
+      last_name: 1,
+      category: 0
+    }
+  }); 
+  
+  json_search.getResults('kris', [{ first_name: 'kris', last_name: 'chambers', category: 'developer'}, { first_na...]);
+</code>
+</pre>    
+
+h2. Search Methods
+
+|_.Type|_.Description|
+|prefix|Matches from the beginning of the string.|
+|infix|Matches anywhere in the string.|
+|exact|Matches the whole string.|
+|word|Matches a whole word.|
+|word_prefix|Matches from the beginning of a word.|
+
+h2. Search Options
+
+|_.Option|_.Default Value|_.Description|
+|case_sensitive|false|case sensitivity when autocompleting.|
+|limit|10|number of results to display.|
+|offset|0|amount to offset the results.|
+|fields|none|object containing the property names to search as the keys and the desired search method as there values.|
+|ranks|0|object containing the property names and there desired ranks.|
+
+h2. Format Options
+
+|_.Option|_.Default Value|_.Description|
+|order|none|order that the results will be displayed.|
+|select|all of the results text|property that will be used to populate the input.|
+
+h2. Dependancies
+
+None
+
+h2. Todo
+
+Better Documentation
+Testing in something other than Firefox 3
+
+h2. Homepage  
+
+"http://github.com/kristopher/jsonsearch":http://github.com/kristopher/jsonsearch
