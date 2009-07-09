@@ -1,23 +1,3 @@
-/*
-  Usage:
-   
-   var json_search = new JSONSearch({
-     fields: {
-       first_name: 'prefix',
-       last_name: 'exact',
-       category: 'infix'
-     },
-     ranks: {  // Not require but suggested
-       first_name: 2,
-       last_name: 1,
-       category: 0
-     },
-     limit: 10,
-     case_sensitive: false
-   }); 
-   
-   json_search.getResults('first', [{ first_name: 'first', last_name: 'last', category: 'names'}, { first_na...]);
-*/
 var JSONSearch = function(options) {
 
   this.default_options = {
