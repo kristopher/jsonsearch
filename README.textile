@@ -41,8 +41,8 @@ h2. Options
 |case_sensitive|false|case sensitivity when autocompleting.|
 |limit|10|number of results to display.|
 |offset|0|amount to offset the results.|
-|fields|none|object containing the property names to search as the keys and the desired search method as there values.|
-|ranks|0|object containing the property names and there desired ranks.|
+|fields|none|object containing the property names to search as the keys and the desired search method as their values.|
+|ranks|0|object containing the property names and their desired ranks.|
 
 h2. Dependancies
 
