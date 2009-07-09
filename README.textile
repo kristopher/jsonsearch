@@ -44,6 +44,22 @@ h2. Options
 |fields|none|object containing the property names to search as the keys and the desired search method as their values.|
 |ranks|0|object containing the property names and their desired ranks.|
 
+h2. Building
+
+<pre>
+<code>
+rake dist
+</code>
+</pre>
+
+h2. Running The Specs
+
+<pre>
+<code>
+rake spec
+</code>
+</pre>
+
 h2. Dependancies
 
 None
