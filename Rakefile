@@ -10,7 +10,7 @@ end
 
 desc "Build json_search.js"
 task :dist do
-  FileUtils.cp(File.join(root_path, 'src', 'json_search.js'), File.join(root_path, 'dist', "json_search_#{version}.js"))
+  FileUtils.cp(File.join(root_path, 'src', 'json_search.js'), File.join(root_path, 'dist', "json_search.#{version}.js"))
 end
   
 desc "Run the specs"
