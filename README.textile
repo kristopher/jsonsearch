@@ -66,8 +66,8 @@ None
 
 h2. Todo
 
-Better Documentation
-Testing in something other than Firefox 3
+Better Documentation.
+Testing in something other than Firefox 3.
 
 h2. Homepage  
 
